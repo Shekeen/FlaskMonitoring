@@ -42,9 +42,10 @@ NOT_FOUND_ERROR = ('{"status": Service not found"}', 404)
 @app.route('/')
 def index():
     now = datetime.datetime.utcnow()
+    tz_delta = datetime.datetime.now() - datetime.datetime.utcnow()
     services = [{'name': service.name,
                  'status': service.status,
-                 'last_update': service.last_update.strftime('%d.%m.%Y %H:%M'),
+                 'last_update': (service.last_update + tz_delta).strftime('%d.%m.%Y %H:%M'),
                  'ok': service.status == 'OK',
                  'fresh': service.is_fresh(now)} for service in Service.query.all()]
     return render_template('index_bs.html', services=services)
