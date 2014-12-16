@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import Flask, render_template, json
+from flask import Flask, request, render_template, json
 from flask_bootstrap3 import Bootstrap
 from flask.ext.sqlalchemy import SQLAlchemy
 import datetime
@@ -50,17 +50,17 @@ def index():
     return render_template('index_bs.html', services=services)
 
 
-@app.route('/<service_name>/info')
-def service_info(service_name):
-    service = Service.query.filter(Service.name == service_name).first()
+@app.route('/<int:service_id>/info')
+def service_info(service_id):
+    service = Service.query.get(service_id)
     if service is None:
         return NOT_FOUND_ERROR
     return service.json_info()
 
 
-@app.route('/<service_name>/status')
-def service_status(service_name):
-    service = Service.query.filter(Service.name == service_name).first()
+@app.route('/<int:service_id>/status')
+def service_status(service_id):
+    service = Service.query.get(service_id)
     if service is None:
         return NOT_FOUND_ERROR
     return service.json_status()
