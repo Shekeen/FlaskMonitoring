@@ -13,7 +13,9 @@
     <tbody>
     {% for service in services %}
         <tr>
-            <td>{{ service.name }}</td>
+            <td><a href="{{ url_for('service_info', service_id=service.id) }}">
+                {{ service.name }}
+            </a></td>
             {% if service.ok %}
             <td style="background-color: green">
             {% else %}

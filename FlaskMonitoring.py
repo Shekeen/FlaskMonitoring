@@ -34,67 +34,85 @@ class Service(db.Model):
 
 db.create_all()
 
-
-BAD_REQUEST_ERROR = ('{"status": "Bad request"}', 400)
-NOT_FOUND_ERROR = ('{"status": Service not found"}', 404)
+JSON_BAD_REQUEST_ERROR = ('{"status": "Bad request"}', 400)
+JSON_NOT_FOUND_ERROR = ('{"status": Service not found"}', 404)
 
 
 @app.route('/')
 def index():
     now = datetime.datetime.utcnow()
     tz_delta = datetime.datetime.now() - datetime.datetime.utcnow()
-    services = [{'name': service.name,
-                 'status': service.status,
+    services = [{'id': service.id,
+                 'name': service.name,
+                 'status': service.status if len(service.status) <= 6 else service.status[:6],
                  'last_update': (service.last_update + tz_delta).strftime('%d.%m.%Y %H:%M'),
                  'ok': service.status == 'OK',
                  'fresh': service.is_fresh(now)} for service in Service.query.all()]
-    return render_template('index_bs.html', services=services)
+    return render_template('index.html', services=services)
 
 
 @app.route('/<int:service_id>/info')
 def service_info(service_id):
+    now = datetime.datetime.utcnow()
+    tz_delta = datetime.datetime.now() - datetime.datetime.utcnow()
     service = Service.query.get(service_id)
     if service is None:
-        return NOT_FOUND_ERROR
+        return render_template('404.html'), 404
+    service = {
+        'name': service.name,
+        'status': service.status,
+        'last_update': (service.last_update + tz_delta).strftime('%d.%m.%Y %H:%M'),
+        'period': service.period,
+        'ok': service.status == 'OK',
+        'fresh': service.is_fresh(now)
+    }
+    return render_template('info.html', service=service)
+
+
+@app.route('/api/json/<int:service_id>/info', methods=['GET'])
+def service_info_json(service_id):
+    service = Service.query.get(service_id)
+    if service is None:
+        return JSON_NOT_FOUND_ERROR
     return service.json_info()
 
 
-@app.route('/<int:service_id>/status')
-def service_status(service_id):
+@app.route('/api/json/<int:service_id>/status', methods=['GET'])
+def service_status_json(service_id):
     service = Service.query.get(service_id)
     if service is None:
-        return NOT_FOUND_ERROR
+        return JSON_NOT_FOUND_ERROR
     return service.json_status()
 
 
-@app.route('/<int:service_id>/update', methods=['POST'])
-def service_update(service_id):
+@app.route('/api/json/<int:service_id>/update', methods=['POST'])
+def service_update_json(service_id):
     service = Service.query.get(service_id)
     if service is None:
-        return NOT_FOUND_ERROR
+        return JSON_NOT_FOUND_ERROR
     if request.headers['Content-Type'] != 'application/json':
-        return BAD_REQUEST_ERROR
+        return JSON_BAD_REQUEST_ERROR
     try:
         status = request.json['Status']
     except KeyError:
-        return BAD_REQUEST_ERROR
+        return JSON_BAD_REQUEST_ERROR
     service.status = status
     service.last_update = datetime.datetime.utcnow()
     db.session.commit()
     return '{"status": "OK"}'
 
 
-@app.route('/register', methods=['POST'])
-def service_register():
+@app.route('/api/json/register', methods=['POST'])
+def service_register_json():
     if request.headers['Content-Type'] != 'application/json':
-        return BAD_REQUEST_ERROR
+        return JSON_BAD_REQUEST_ERROR
     try:
         name = request.json['Name']
         period = int(request.json['Period'])
     except (KeyError, ValueError):
-        return BAD_REQUEST_ERROR
+        return JSON_BAD_REQUEST_ERROR
     if Service.query.filter(Service.name == name).first() is not None:
-        return BAD_REQUEST_ERROR
+        return JSON_BAD_REQUEST_ERROR
     now = datetime.datetime.utcnow()
     new_service = Service(name=name, status='OK', period=period, last_update=now)
     db.session.add(new_service)
