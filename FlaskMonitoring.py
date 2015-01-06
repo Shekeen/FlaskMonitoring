@@ -44,7 +44,7 @@ def index():
     tz_delta = datetime.datetime.now() - datetime.datetime.utcnow()
     services = [{'id': service.id,
                  'name': service.name,
-                 'status': service.status if len(service.status) <= 6 else service.status[:6],
+                 'status': service.status if len(service.status) <= 10 else service.status[:7] + '...',
                  'last_update': (service.last_update + tz_delta).strftime('%d.%m.%Y %H:%M'),
                  'ok': service.status == 'OK',
                  'fresh': service.is_fresh(now)} for service in Service.query.all()]
